@@ -1,6 +1,6 @@
 # Tiny State: State Management You'll Actually Want to Use
 
-[![Build and Test](https://github.com/your-username/tiny_state/actions/workflows/build.yml/badge.svg)](https://github.com/your-username/tiny_state/actions/workflows/build.yml)
+[![Build and Test](https://github.com/theprantadutta/tiny_state/actions/workflows/build.yml/badge.svg)](https://github.com/theprantadutta/tiny_state/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A minimalistic, intuitive, and powerful state management library for Flutter that feels like using a `ValueNotifier`, but global and enhanced. It's designed to be simple, fast, and require zero boilerplate.
