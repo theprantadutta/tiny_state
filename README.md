@@ -90,19 +90,25 @@ The home screen provides a central navigation hub to explore the different featu
 
 This screen covers the fundamental methods for managing state, including `watch`, `get`, `set`, `update`, `reset`, and `delete`.
 
-![Basics Screen](https://via.placeholder.com/300x600.png?text=Basics+Screen)
+![Basics Screen](screenshots/basics_screen.jpg)
 
 ### Todos Screen
 
 A classic "to-do list" example that showcases how to manage a list of items, including adding, updating, and deleting them.
 
-![Todos Screen](https://via.placeholder.com/300x600.png?text=Todos+Screen)
+![Todos Screen](screenshots/todos_screen.jpg)
+
+### Profile Screen
+
+This screen demonstrates how to use `watchFuture` to handle asynchronous operations and update the UI based on the future's state.
+
+![Profile Screen](screenshots/profile_screen.jpg)
 
 ### Scoped Screen
 
 This screen demonstrates how to use scopes to isolate state and prevent key collisions in larger applications.
 
-![Scoped Screen](https://via.placeholder.com/300x600.png?text=Scoped+Screen)
+![Scoped Screen](screenshots/scopes_screen.jpg)
 
 ## License
 
