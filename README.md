@@ -80,12 +80,6 @@ tinyState.delete('counter');
 
 Our example app demonstrates the core features of `tiny_state` across four different screens:
 
-### Home Screen
-
-The home screen provides a central navigation hub to explore the different features of the library.
-
-![Home Screen](https://via.placeholder.com/300x600.png?text=Home+Screen)
-
 ### Basics Screen
 
 This screen covers the fundamental methods for managing state, including `watch`, `get`, `set`, `update`, `reset`, and `delete`.

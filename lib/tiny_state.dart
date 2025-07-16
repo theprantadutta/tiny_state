@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:tiny_state/src/persistence.dart';
+import 'src/persistence.dart';
+export 'src/persistence.dart';
 
 /// A private class to hold the notifier and its default value.
 class _State<T> {

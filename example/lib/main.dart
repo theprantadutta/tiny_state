@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tiny_state/src/persistence.dart';
 import 'package:tiny_state/tiny_state.dart';
 import 'src/models/todo.dart';
 import 'src/screens/home_screen.dart';

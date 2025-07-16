@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tiny_state/tiny_state.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tiny_state/src/persistence.dart';
 
 void main() {
   // Reset the tinyState instance before each test to ensure isolation.

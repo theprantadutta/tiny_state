@@ -12,6 +12,7 @@ dependencies:
   flutter:
     sdk: flutter
   
+  shared_preferences: ^2.5.3
   tiny_state:
     path: ../
   uuid: ^4.0.0
