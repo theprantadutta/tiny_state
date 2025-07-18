@@ -14,7 +14,7 @@ A minimalistic, intuitive, and powerful state management library for Flutter tha
 
 ## Features
 
-Based on our `implementation_status.md`, here are the features currently available:
+Here are the features currently available:
 
 -   ✅ **Global & Scoped State:** Manage state globally or within specific scopes (`tinyState.scope('name')`) to keep your app organized.
 -   ✅ **Reactive UI:** Automatically update your UI when the state changes using `watch`, `select`, and `computed` methods.
