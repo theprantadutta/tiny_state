@@ -1,7 +1,14 @@
 name: tiny_state
 description: "A tiny, global, reactive state manager for Flutter that is simple, fast, and requires zero boilerplate. Feels like using a ValueNotifier, but global and enhanced."
-version: 1.0.0
+version: 1.1.0
 homepage: https://github.com/theprantadutta/tiny_state
+repository: https://github.com/theprantadutta/tiny_state
+issue_tracker: https://github.com/theprantadutta/tiny_state/issues
+topics:
+  - state-management
+  - reactive
+  - state
+  - valuenotifier
 
 environment:
   sdk: ^3.8.1

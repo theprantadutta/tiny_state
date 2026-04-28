@@ -1,0 +1,10 @@
+# Flutter / Dart build artifacts
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+**/doc/api/
+pubspec.lock
+
+# Internal dev tracking — not for end users
+implementation_status.md
