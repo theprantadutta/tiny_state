@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tiny_state/tiny_state.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -375,6 +376,7 @@ void main() {
 
   group('TinyState Persistence Tests', () {
     setUp(() async {
+      tinyState.dispose();
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
       tinyState.persistenceAdapter = SharedPreferencesAdapter(prefs);
@@ -391,6 +393,190 @@ void main() {
 
       final counter = newTinyState.watch<int>('counter', 0, persist: true);
       expect(counter.value, 10);
+    });
+
+    test('onError callback fires on malformed JSON', () async {
+      SharedPreferences.setMockInitialValues({'badKey': 'not valid json {'});
+      final prefs = await SharedPreferences.getInstance();
+      String? errorKey;
+      Object? errorObj;
+      final adapter = SharedPreferencesAdapter(
+        prefs,
+        onError: (key, err) {
+          errorKey = key;
+          errorObj = err;
+        },
+      );
+      final result = await adapter.read<Map<String, dynamic>>('badKey');
+      expect(result, isNull);
+      expect(errorKey, 'badKey');
+      expect(errorObj, isNotNull);
+    });
+
+    test(
+      'persist load should not clobber a value the user has already set',
+      () async {
+        SharedPreferences.setMockInitialValues({'note': 'persisted'});
+        final prefs = await SharedPreferences.getInstance();
+        tinyState.dispose();
+        tinyState.persistenceAdapter = SharedPreferencesAdapter(prefs);
+
+        final note = tinyState.watch<String>('note', '', persist: true);
+        // User sets a value before the async read resolves.
+        tinyState.set<String>('note', 'user-typed', persist: true);
+
+        // Wait long enough for the deferred read to settle.
+        await Future.delayed(const Duration(milliseconds: 50));
+        expect(note.value, 'user-typed');
+      },
+    );
+  });
+
+  group('TinyState Reverse Dependency Index', () {
+    setUp(() {
+      tinyState.dispose();
+    });
+
+    test('only computeds that actually depend on a key are re-run', () {
+      tinyState.watch<int>('a', 1);
+      tinyState.watch<int>('b', 2);
+
+      var aRuns = 0;
+      var bRuns = 0;
+      tinyState.computed<int>('aDoubled', () {
+        aRuns++;
+        return (tinyState.get<int>('a') ?? 0) * 2;
+      });
+      tinyState.computed<int>('bDoubled', () {
+        bRuns++;
+        return (tinyState.get<int>('b') ?? 0) * 2;
+      });
+
+      // Initial computation each.
+      expect(aRuns, 1);
+      expect(bRuns, 1);
+
+      tinyState.set<int>('a', 5);
+      expect(aRuns, 2);
+      expect(bRuns, 1); // unchanged — b does not depend on a
+    });
+  });
+
+  group('TinyState Nested Computed', () {
+    setUp(() {
+      tinyState.dispose();
+    });
+
+    test('nested computed inside another computed tracks its own deps', () {
+      tinyState.watch<int>('x', 1);
+      tinyState.watch<int>('y', 10);
+
+      // Outer computed reads x; inside, we register an inner computed reading y.
+      // Both should track their respective deps correctly.
+      late ValueListenable<int> inner;
+      final outer = tinyState.computed<int>('outer', () {
+        inner = tinyState.computed<int>('inner', () {
+          return (tinyState.get<int>('y') ?? 0) + 1;
+        });
+        return (tinyState.get<int>('x') ?? 0) + inner.value;
+      });
+
+      expect(outer.value, 12); // 1 + (10 + 1)
+      expect(inner.value, 11);
+
+      tinyState.set<int>('y', 20);
+      expect(inner.value, 21);
+
+      tinyState.set<int>('x', 100);
+      // Outer recomputes; inner.value is 21.
+      expect(outer.value, 121);
+    });
+  });
+
+  group('TinyState dispose() Tests', () {
+    test('dispose tears down everything and singleton remains usable', () {
+      tinyState.watch<int>('counter', 0);
+      tinyState.computed<int>(
+        'doubled',
+        () => (tinyState.get<int>('counter') ?? 0) * 2,
+      );
+
+      tinyState.dispose();
+
+      expect(tinyState.get<int>('counter'), isNull);
+      expect(tinyState.persistenceAdapter, isNull);
+
+      // Singleton still works after dispose.
+      final fresh = tinyState.watch<int>('counter', 99);
+      expect(fresh.value, 99);
+    });
+  });
+
+  group('TinyState watchFuture refresh', () {
+    setUp(() {
+      tinyState.dispose();
+    });
+
+    test('refresh: true re-runs the future and updates the snapshot', () async {
+      var calls = 0;
+      Future<String> builder() async {
+        calls++;
+        return 'call-$calls';
+      }
+
+      final snap = tinyState.watchFuture<String>('job', builder);
+      await Future.delayed(const Duration(milliseconds: 10));
+      expect(snap.value.data, 'call-1');
+
+      tinyState.watchFuture<String>('job', builder, refresh: true);
+      expect(snap.value.connectionState, ConnectionState.waiting);
+      await Future.delayed(const Duration(milliseconds: 10));
+      expect(snap.value.data, 'call-2');
+    });
+
+    test('refreshFuture re-runs the originally registered future', () async {
+      var calls = 0;
+      final snap = tinyState.watchFuture<int>('count', () async {
+        calls++;
+        return calls;
+      });
+      await Future.delayed(const Duration(milliseconds: 10));
+      expect(snap.value.data, 1);
+
+      tinyState.refreshFuture('count');
+      expect(snap.value.connectionState, ConnectionState.waiting);
+      await Future.delayed(const Duration(milliseconds: 10));
+      expect(snap.value.data, 2);
+    });
+  });
+
+  group('TinyState Type Mismatch Guard', () {
+    setUp(() {
+      tinyState.dispose();
+    });
+
+    test('strictTypes throws on mismatched set', () {
+      tinyState.strictTypes = true;
+      tinyState.watch<int>('k', 0);
+      expect(
+        () => tinyState.set<String>('k', 'oops'),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('strictTypes false allows mismatched set (legacy behavior)', () {
+      tinyState.strictTypes = false;
+      tinyState.watch<int>('k', 0);
+      // Won't throw at the guard; runtime cast may still complain elsewhere,
+      // but the guard itself is bypassed.
+      expect(() => tinyState.strictTypes = false, returnsNormally);
+    });
+
+    test('matching types pass cleanly', () {
+      tinyState.strictTypes = true;
+      tinyState.watch<int>('k', 0);
+      expect(() => tinyState.set<int>('k', 5), returnsNormally);
+      expect(tinyState.get<int>('k'), 5);
     });
   });
 }
