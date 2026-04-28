@@ -14,7 +14,12 @@ abstract class TinyStatePersistenceAdapter {
 class SharedPreferencesAdapter extends TinyStatePersistenceAdapter {
   final SharedPreferences _prefs;
 
-  SharedPreferencesAdapter(this._prefs);
+  /// Optional callback invoked when reading a complex (JSON-encoded) value
+  /// fails to decode, e.g. due to a schema change or corrupted entry.
+  /// When null, deserialization errors are silently swallowed (returning null).
+  final void Function(String key, Object error)? onError;
+
+  SharedPreferencesAdapter(this._prefs, {this.onError});
 
   @override
   Future<T?> read<T>(String key) async {
@@ -41,6 +46,7 @@ class SharedPreferencesAdapter extends TinyStatePersistenceAdapter {
     try {
       return jsonDecode(value as String) as T;
     } catch (e) {
+      onError?.call(key, e);
       return null;
     }
   }
