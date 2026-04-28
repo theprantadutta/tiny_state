@@ -15,6 +15,9 @@ void main() async {
   tinyState.watch<String>('firstName', 'John');
   tinyState.watch<String>('lastName', 'Doe');
   tinyState.watch<List<Todo>>('todos', []);
+  tinyState.watch<String>('note', '', persist: true);
+  tinyState.watch<int>('persistedCounter', 0, persist: true);
+  tinyState.watch<int>('inMemoryCounter', 0);
 
   runApp(const App());
 }

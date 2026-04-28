@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'basics_screen.dart';
+import 'persistence_screen.dart';
 import 'profile_screen.dart';
 import 'scoped_screen.dart';
 import 'todos_screen.dart';
@@ -19,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
     const ProfileScreen(),
     const TodosScreen(),
     const ScopedScreen(),
+    const PersistenceScreen(),
   ];
 
   @override
@@ -55,6 +57,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.space_dashboard_outlined),
             activeIcon: Icon(Icons.space_dashboard),
             label: 'Scopes',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.save_outlined),
+            activeIcon: Icon(Icons.save),
+            label: 'Persist',
           ),
         ],
       ),
