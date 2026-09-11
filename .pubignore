@@ -1,10 +1,33 @@
-# Flutter / Dart build artifacts
+# Build artifacts
 .dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
 build/
 **/doc/api/
 pubspec.lock
 
-# Internal dev tracking — not for end users
+# Internal dev tracking - not for end users
+features.md
 implementation_status.md
+
+# Editor / CI config
+# NOTE: a .pubignore replaces .gitignore for publishing, so patterns that are
+# only in .gitignore have to be repeated here.
+*.iml
+.metadata
+.flutter-plugins
+.flutter-plugins-dependencies
+.github/
+.idea/
+.vscode/
+tool/
+
+# The example's Dart sources ship (pub.dev renders them); its generated
+# platform folders do not - they are ~120 files of boilerplate.
+example/android/
+example/ios/
+example/linux/
+example/macos/
+example/windows/
+example/web/
+example/.dart_tool/
+example/build/
+example/pubspec.lock
