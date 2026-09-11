@@ -32,12 +32,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # This is what provisions the pub.dev OIDC token (as PUB_TOKEN). Without
-      # it, publishing prompts for interactive authorization. Its `dart` is
-      # deliberately shadowed by the Flutter SDK's below; only the token from
-      # this step is used.
-      - uses: dart-lang/setup-dart@v1
-
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -61,6 +55,18 @@ jobs:
 
       - name: Validate the published archive
         run: flutter pub publish --dry-run
+
+      # Provisions the pub.dev OIDC token as PUB_TOKEN. Without it, publishing
+      # falls back to interactive OAuth and blocks forever on a runner.
+      #
+      # This runs LAST on purpose. The token is publish-scoped, and pub attaches
+      # it to every pub.dev request once it is in the environment - including
+      # dependency reads, which pub.dev then rejects with "Insufficient
+      # permissions", breaking `pub get` and the dry run. Resolution above
+      # therefore happens before the token exists, and has already warmed
+      # PUB_CACHE by the time we publish.
+      - uses: dart-lang/setup-dart@v1
+        if: github.event_name == 'push' || inputs.dry_run == false
 
       - name: Publish
         if: github.event_name == 'push' || inputs.dry_run == false
