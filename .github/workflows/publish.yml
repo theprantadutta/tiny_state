@@ -24,10 +24,19 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       # Required for pub.dev to trust this workflow. Without it the publish
-      # step fails with an authentication error.
+      # step falls back to interactive OAuth and hangs.
       id-token: write
+    # A failed OIDC exchange makes `pub publish` wait on a browser prompt that
+    # never comes. Bound it rather than burning the 6h default.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
+
+      # This is what provisions the pub.dev OIDC token (as PUB_TOKEN). Without
+      # it, publishing prompts for interactive authorization. Its `dart` is
+      # deliberately shadowed by the Flutter SDK's below; only the token from
+      # this step is used.
+      - uses: dart-lang/setup-dart@v1
 
       - uses: subosito/flutter-action@v2
         with:
