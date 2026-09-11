@@ -1,71 +1,70 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
-
-/// An abstract class that defines the interface for a persistence adapter.
+/// The contract `tiny_state` uses to persist and rehydrate state.
+///
+/// `tiny_state` deliberately ships with **no** storage dependency. Bring your
+/// own backend — `shared_preferences`, `hive`, secure storage, a remote KV
+/// store — by implementing these three methods and assigning the result to
+/// [TinyState.persistenceAdapter].
+///
+/// A reference `shared_preferences` implementation lives in the README and in
+/// `example/lib/src/persistence/shared_preferences_adapter.dart`.
+///
+/// ### Contract
+///
+/// * [read] returns `null` when the key is absent. Returning `null` leaves the
+///   in-memory default in place.
+/// * [write] is called on every change to a key declared with `persist: true`.
+///   Writes for a single key are serialized by `TinyState`, so implementations
+///   do not need their own locking.
+/// * [remove] is called by `reset` and `delete`, so a reset key falls back to
+///   the default declared in code on the next launch.
+///
+/// Throwing from any method is safe: `TinyState` catches the error and reports
+/// it through [TinyState.onError] instead of leaking an unhandled async error.
 abstract class TinyStatePersistenceAdapter {
-  /// Reads a value from the persistence layer.
+  /// Allows `const` subclasses.
+  const TinyStatePersistenceAdapter();
+
+  /// Reads the value stored under [key], or `null` if there is none.
   Future<T?> read<T>(String key);
 
-  /// Writes a value to the persistence layer.
+  /// Writes [value] under [key].
   Future<void> write<T>(String key, T value);
+
+  /// Deletes whatever is stored under [key]. A no-op if nothing is stored.
+  Future<void> remove(String key);
 }
 
-/// A persistence adapter that uses the `shared_preferences` package.
-class SharedPreferencesAdapter extends TinyStatePersistenceAdapter {
-  final SharedPreferences _prefs;
+/// An in-memory [TinyStatePersistenceAdapter].
+///
+/// Nothing survives a restart, which makes this useful for tests, for demos,
+/// and as a null-object when persistence is disabled in a build flavour.
+///
+/// ```dart
+/// final adapter = MemoryPersistenceAdapter({'themeMode': 1});
+/// tinyState.persistenceAdapter = adapter;
+/// ```
+class MemoryPersistenceAdapter extends TinyStatePersistenceAdapter {
+  /// Creates an adapter, optionally pre-populated with [seed].
+  MemoryPersistenceAdapter([Map<String, Object?>? seed])
+    : _entries = {...?seed};
 
-  /// Optional callback invoked when reading a complex (JSON-encoded) value
-  /// fails to decode, e.g. due to a schema change or corrupted entry.
-  /// When null, deserialization errors are silently swallowed (returning null).
-  final void Function(String key, Object error)? onError;
+  final Map<String, Object?> _entries;
 
-  SharedPreferencesAdapter(this._prefs, {this.onError});
+  /// An unmodifiable view of everything currently stored.
+  ///
+  /// Handy for asserting on persisted output in tests.
+  Map<String, Object?> get entries => Map.unmodifiable(_entries);
 
   @override
-  Future<T?> read<T>(String key) async {
-    final value = _prefs.get(key);
-    if (value == null) {
-      return null;
-    }
-    if (T == bool) {
-      return value as T;
-    }
-    if (T == int) {
-      return value as T;
-    }
-    if (T == double) {
-      return value as T;
-    }
-    if (T == String) {
-      return value as T;
-    }
-    if (T == List<String>) {
-      return (value as List).cast<String>() as T;
-    }
-    // For complex types, we assume they are stored as JSON strings.
-    try {
-      return jsonDecode(value as String) as T;
-    } catch (e) {
-      onError?.call(key, e);
-      return null;
-    }
-  }
+  Future<T?> read<T>(String key) async => _entries[key] as T?;
 
   @override
   Future<void> write<T>(String key, T value) async {
-    if (value is bool) {
-      await _prefs.setBool(key, value);
-    } else if (value is int) {
-      await _prefs.setInt(key, value);
-    } else if (value is double) {
-      await _prefs.setDouble(key, value);
-    } else if (value is String) {
-      await _prefs.setString(key, value);
-    } else if (value is List<String>) {
-      await _prefs.setStringList(key, value);
-    } else {
-      // For complex types, we store them as JSON strings.
-      await _prefs.setString(key, jsonEncode(value));
-    }
+    _entries[key] = value;
+  }
+
+  @override
+  Future<void> remove(String key) async {
+    _entries.remove(key);
   }
 }

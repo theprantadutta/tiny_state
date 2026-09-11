@@ -1,4 +1,23 @@
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  exclude:
+    - example/**
+    - build/**
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
+linter:
+  rules:
+    # This is a published package: every public member carries documentation.
+    - public_member_api_docs
+    # The 1.x persistence layer dropped async errors on the floor. Make any
+    # un-awaited future an explicit, reviewable decision.
+    - unawaited_futures
+    - prefer_final_locals
+    - always_declare_return_types
+
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

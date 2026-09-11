@@ -1,116 +1,136 @@
 import 'package:flutter/material.dart';
 import 'package:tiny_state/tiny_state.dart';
 import 'package:uuid/uuid.dart';
+
 import '../models/todo.dart';
 
-class TodosScreen extends StatelessWidget {
+class TodosScreen extends StatefulWidget {
   const TodosScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final todos = tinyState.watch<List<Todo>>('todos', []);
-    final textController = TextEditingController();
-    const uuid = Uuid();
+  State<TodosScreen> createState() => _TodosScreenState();
+}
 
-    final completedCount = tinyState.computed<int>('completedCount', () {
-      final todoList = tinyState.get<List<Todo>>('todos') ?? [];
-      return todoList.where((todo) => todo.completed).length;
-    });
+class _TodosScreenState extends State<TodosScreen> {
+  static const _uuid = Uuid();
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _add() {
+    final title = _controller.text.trim();
+    if (title.isEmpty) return;
+
+    // `update` must return a NEW list — mutating the existing one in place
+    // would compare equal and never notify.
+    tinyState.update<List<Todo>>(
+      'todos',
+      (List<Todo> todos) => [...todos, Todo(id: _uuid.v4(), title: title)],
+    );
+    _controller.clear();
+  }
+
+  void _toggle(String id, bool completed) {
+    tinyState.update<List<Todo>>(
+      'todos',
+      (List<Todo> todos) => [
+        for (final todo in todos)
+          if (todo.id == id) todo.copyWith(completed: completed) else todo,
+      ],
+    );
+  }
+
+  void _remove(String id) {
+    tinyState.update<List<Todo>>(
+      'todos',
+      (List<Todo> todos) => todos.where((Todo todo) => todo.id != id).toList(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Derived state: re-evaluated automatically whenever 'todos' changes.
+    final completedCount = tinyState.computed<int>(
+      'completedCount',
+      () => (tinyState.get<List<Todo>>('todos') ?? const [])
+          .where((Todo todo) => todo.completed)
+          .length,
+    );
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
+        const Padding(
+          padding: EdgeInsets.all(16),
           child: Text(
-            'This screen shows how to manage a list of objects and use a `computed` state to derive data from it.',
+            'A list of models, a computed count derived from it, and a codec '
+            'so the whole list survives a restart.',
             textAlign: TextAlign.center,
           ),
         ),
         Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
               Expanded(
                 child: TextField(
-                  controller: textController,
+                  controller: _controller,
+                  onSubmitted: (_) => _add(),
                   decoration: const InputDecoration(
-                    labelText: 'Add a new todo',
+                    labelText: 'New todo',
+                    border: OutlineInputBorder(),
                   ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: () {
-                  if (textController.text.isNotEmpty) {
-                    final currentTodos = List<Todo>.from(
-                      tinyState.get<List<Todo>>('todos') ?? [],
-                    );
-                    currentTodos.add(
-                      Todo(title: textController.text, id: uuid.v4()),
-                    );
-                    tinyState.set<List<Todo>>('todos', currentTodos);
-                    textController.clear();
-                  }
-                },
-              ),
+              const SizedBox(width: 8),
+              IconButton.filled(onPressed: _add, icon: const Icon(Icons.add)),
             ],
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: ValueListenableBuilder<int>(
-            valueListenable: completedCount,
-            builder: (context, count, child) {
-              final total = (tinyState.get<List<Todo>>('todos') ?? []).length;
-              return Text('$count of $total completed');
-            },
+          padding: const EdgeInsets.all(16),
+          child: TinyBuilder<int>.listen(
+            completedCount,
+            (BuildContext context, int count) => Text(
+              '$count completed',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
           ),
         ),
         Expanded(
-          child: ValueListenableBuilder<List<Todo>>(
-            valueListenable: todos,
-            builder: (context, todoList, child) {
-              if (todoList.isEmpty) {
-                return const Center(child: Text('No todos yet!'));
-              }
-              return ListView.builder(
-                itemCount: todoList.length,
-                itemBuilder: (context, index) {
-                  final todo = todoList[index];
-                  return ListTile(
-                    title: Text(
-                      todo.title,
-                      style: TextStyle(
-                        decoration: todo.completed
-                            ? TextDecoration.lineThrough
-                            : TextDecoration.none,
-                      ),
+          child: TinyBuilder<List<Todo>>('todos', const [], (
+            BuildContext context,
+            List<Todo> todos,
+          ) {
+            if (todos.isEmpty) {
+              return const Center(child: Text('Nothing here yet.'));
+            }
+            return ListView.builder(
+              itemCount: todos.length,
+              itemBuilder: (BuildContext context, int index) {
+                final todo = todos[index];
+                return CheckboxListTile(
+                  value: todo.completed,
+                  title: Text(
+                    todo.title,
+                    style: TextStyle(
+                      decoration: todo.completed
+                          ? TextDecoration.lineThrough
+                          : null,
                     ),
-                    leading: Checkbox(
-                      value: todo.completed,
-                      onChanged: (value) {
-                        final currentTodos = List<Todo>.from(
-                          tinyState.get<List<Todo>>('todos') ?? [],
-                        );
-                        currentTodos[index].completed = value!;
-                        tinyState.set<List<Todo>>('todos', currentTodos);
-                      },
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () {
-                        final currentTodos = List<Todo>.from(
-                          tinyState.get<List<Todo>>('todos') ?? [],
-                        );
-                        currentTodos.removeAt(index);
-                        tinyState.set<List<Todo>>('todos', currentTodos);
-                      },
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+                  ),
+                  onChanged: (bool? value) => _toggle(todo.id, value ?? false),
+                  secondary: IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => _remove(todo.id),
+                  ),
+                );
+              },
+            );
+          }),
         ),
       ],
     );

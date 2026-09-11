@@ -10,14 +10,19 @@ class ScopedScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            'This screen demonstrates how to use `scope` to create isolated state containers.',
-            textAlign: TextAlign.center,
+          Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'Both counters use the key "value". Scopes keep them apart — and '
+              'a literal "counterA/value" is rejected, so the namespaces can '
+              'never collide.',
+              textAlign: TextAlign.center,
+            ),
           ),
           SizedBox(height: 20),
-          ScopedCounter(scopeName: 'CounterA'),
+          ScopedCounter(scopeName: 'counterA'),
           SizedBox(height: 20),
-          ScopedCounter(scopeName: 'CounterB'),
+          ScopedCounter(scopeName: 'counterB'),
         ],
       ),
     );
@@ -32,22 +37,21 @@ class ScopedCounter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scope = tinyState.scope(scopeName);
-    final counter = scope.watch<int>('value', 0);
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Column(
           children: [
-            Text(scopeName, style: Theme.of(context).textTheme.headlineSmall),
-            ValueListenableBuilder<int>(
-              valueListenable: counter,
-              builder: (context, value, child) {
-                return Text(
-                  '$value',
-                  style: Theme.of(context).textTheme.displayMedium,
-                );
-              },
+            Text(scopeName, style: Theme.of(context).textTheme.titleMedium),
+            TinyBuilder<int>(
+              'value',
+              0,
+              (BuildContext context, int value) => Text(
+                '$value',
+                style: Theme.of(context).textTheme.displaySmall,
+              ),
+              scope: scope,
             ),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -55,12 +59,18 @@ class ScopedCounter extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.add),
                   onPressed: () =>
-                      scope.set('value', (scope.get<int>('value') ?? 0) + 1),
+                      scope.update<int>('value', (int value) => value + 1),
                 ),
                 IconButton(
                   icon: const Icon(Icons.remove),
                   onPressed: () =>
-                      scope.set('value', (scope.get<int>('value') ?? 0) - 1),
+                      scope.update<int>('value', (int value) => value - 1),
+                ),
+                // `reset` and not `scope.clear()`: clearing deletes and
+                // disposes the notifier this widget is listening to.
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: () => scope.reset('value'),
                 ),
               ],
             ),

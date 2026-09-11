@@ -9,42 +9,52 @@ class BasicsScreen extends StatefulWidget {
 }
 
 class _BasicsScreenState extends State<BasicsScreen> {
-  VoidCallback? _counterListener;
+  VoidCallback? _cancelCounterListener;
 
   @override
   void initState() {
     super.initState();
-    // Listen to the counter and show a SnackBar on every multiple of 5.
-    _counterListener = tinyState.listen<int>('counter', (value) {
-      if (mounted && value != 0 && value % 5 == 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('The count is now $value!'),
-            duration: const Duration(seconds: 1),
-          ),
-        );
-      }
+
+    // `listen` and `select` require the key to exist; `watch` is what creates
+    // it. Declaring it here keeps the screen self-sufficient instead of
+    // relying on main() having run first.
+    tinyState.watch<int>('counter', 0);
+
+    // Show a SnackBar on every multiple of five.
+    _cancelCounterListener = tinyState.listen<int>('counter', (int value) {
+      if (!mounted || value == 0 || value % 5 != 0) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('The count is now $value!'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
     });
   }
 
   @override
   void dispose() {
-    // It's crucial to cancel the listener when the widget is disposed.
-    _counterListener?.call();
+    // Always cancel a listen() subscription with the widget that owns it.
+    _cancelCounterListener?.call();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final counter = tinyState.watch<int>('counter', 0);
-    final isEven = tinyState.select<int, bool>('counter', (val) => val.isEven);
+    // `select` is memoized on (key, id), so calling it from build returns the
+    // same listenable on every rebuild instead of creating a new one.
+    final isEven = tinyState.select<int, bool>(
+      'counter',
+      (int value) => value.isEven,
+      id: 'isEven',
+    );
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Card(
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -54,28 +64,26 @@ class _BasicsScreenState extends State<BasicsScreen> {
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  'This screen demonstrates the core methods:\n`watch`, `select`, `set`, `get`, `listen`, and `delete`.',
+                  'watch, get, set, update, reset, delete — plus select and '
+                  'listen.',
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
-                ValueListenableBuilder<int>(
-                  valueListenable: counter,
-                  builder: (context, count, child) {
-                    return Text(
-                      '$count',
-                      style: Theme.of(context).textTheme.displayLarge,
-                    );
-                  },
+                TinyBuilder<int>(
+                  'counter',
+                  0,
+                  (BuildContext context, int count) => Text(
+                    '$count',
+                    style: Theme.of(context).textTheme.displayLarge,
+                  ),
                 ),
                 const SizedBox(height: 10),
-                ValueListenableBuilder<bool>(
-                  valueListenable: isEven,
-                  builder: (context, even, child) {
-                    return Text(
-                      even ? 'Even' : 'Odd',
-                      style: Theme.of(context).textTheme.labelLarge,
-                    );
-                  },
+                TinyBuilder<bool>.listen(
+                  isEven,
+                  (BuildContext context, bool even) => Text(
+                    even ? 'Even' : 'Odd',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -85,7 +93,7 @@ class _BasicsScreenState extends State<BasicsScreen> {
                       heroTag: 'increment',
                       onPressed: () => tinyState.update<int>(
                         'counter',
-                        (count) => count + 1,
+                        (int count) => count + 1,
                       ),
                       child: const Icon(Icons.add),
                     ),
@@ -94,7 +102,7 @@ class _BasicsScreenState extends State<BasicsScreen> {
                       heroTag: 'decrement',
                       onPressed: () => tinyState.update<int>(
                         'counter',
-                        (count) => count - 1,
+                        (int count) => count - 1,
                       ),
                       child: const Icon(Icons.remove),
                     ),
@@ -103,7 +111,7 @@ class _BasicsScreenState extends State<BasicsScreen> {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () => tinyState.reset('counter'),
-                  child: const Text('Reset Counter'),
+                  child: const Text('Reset counter'),
                 ),
               ],
             ),
