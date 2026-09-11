@@ -1,6 +1,6 @@
 name: tiny_state
 description: "A tiny, zero-dependency, global reactive state manager for Flutter. Feels like a ValueNotifier, but global, keyed, and with computed state built in."
-version: 1.1.0
+version: 2.0.0
 homepage: https://github.com/theprantadutta/tiny_state
 repository: https://github.com/theprantadutta/tiny_state
 issue_tracker: https://github.com/theprantadutta/tiny_state/issues
